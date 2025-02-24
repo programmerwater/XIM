@@ -1,0 +1,9 @@
+# XIM
+
+XIM is IM tool based on Qt. Befroe deveploment, you should read [Rich Text Processing](https://doc.qt.io/qt-6/richtext.html).
+
+## References
+
+|Name|Remark|
+|:--:|:--:|
+|[bubble chat implement using QTextEdit](https://stackoverflow.com/questions/25756791/how-to-give-qtextframe-or-qtextblock-a-background-image-in-qtextedit)||
