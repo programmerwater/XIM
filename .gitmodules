@@ -1,0 +1,3 @@
+[submodule "XFramelessWidget"]
+	path = XFramelessWidget
+	url = git@github.com:programmerwater/XFramelessWidget.git
