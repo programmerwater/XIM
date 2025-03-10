@@ -7,8 +7,8 @@ int main(int argc, char** argv)
 {
 	QApplication app(argc, argv);
 
-	MainWgt mainContentWgt;
 	XFramelessWidgetWithCaption mainWnd;
+	MainWgt mainContentWgt;
 	mainWnd.setWindowTitle("XIM");
 	QObject::connect(&mainWnd, SIGNAL(closeRequested()), &app, SLOT(quit()));
 	mainWnd.setContentWidget(&mainContentWgt);
