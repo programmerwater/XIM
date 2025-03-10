@@ -47,6 +47,7 @@ set(Headers
 	widgets/mainwgt.h
 	widgets/chattextbrowser.h
 	widgets/chattexteditor.h
+    widgets/chattexteditortool.h
 )
 
 set(Srcs
@@ -54,6 +55,7 @@ set(Srcs
     widgets/mainwgt.cpp
 	widgets/chattextbrowser.cpp
 	widgets/chattexteditor.cpp
+    widgets/chattexteditortool.cpp
 )
 
 target_sources(

@@ -1,6 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include "QtCore/QJsonArray"
 #include "QtCore/QMetaType"
 #include "QtCore/QString"
 
@@ -12,16 +13,11 @@ enum class MessageType
 };
 Q_DECLARE_METATYPE(MessageType);
 
-struct MessageFormat 
-{
-	QString content;
-};
-
 struct MessageItem 
 {
 	bool isSelf = false;
-	MessageFormat messageFormat;
 	quint64 time = 0;
+	QJsonArray msgTypes;
 	QString senderName;
 	QString receiverName;
 };

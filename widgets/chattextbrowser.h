@@ -1,12 +1,14 @@
 #ifndef ChatTextBrowser_H
 #define ChatTextBrowser_H
 
+#include "QtWidgets/QTextBrowser"
+
 #include "chattexteditor.h"
 #include "context/message.h"
 
 class ChatTextBrowserPrivate;
 
-class ChatTextBrowser  final : public ChatTextEditor
+class ChatTextBrowser  final : public QTextBrowser
 {
     Q_OBJECT
 
@@ -15,6 +17,12 @@ public:
 	~ChatTextBrowser();
 
     void addMessageItem(const MessageItem& messageItem);
+
+	Q_SIGNAL void imageClicked(const QUrl& imageUrl, QPrivateSignal);
+	Q_SIGNAL void linkClicked(const QUrl& linkUrl, QPrivateSignal);
+
+protected:
+	void mousePressEvent(QMouseEvent* e) override;
 
 private:
 	Q_DECLARE_PRIVATE(ChatTextBrowser);

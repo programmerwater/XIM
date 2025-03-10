@@ -1,6 +1,9 @@
 #include "chattexteditor.h"
 
 #include "QtCore/QDebug"
+#include "QtCore/QJsonArray"
+#include "QtCore/QJsonDocument"
+#include "QtCore/QJsonObject"
 #include "QtGui/QTextBlock"
 
 class ChatTextEditorPrivate final
@@ -16,28 +19,37 @@ public:
 	}
 
 	void doInsertText(const QString& text, const QTextCharFormat txtFmt,
-		QTextCursor& cur /*= QTextCursor()*/, bool replace /*= false*/)
+		QTextCursor& cur /*= QTextCursor()*/)
 	{
 		Q_Q(ChatTextEditor);
-		if (replace)
-		{
-			q->clear();
-		}
 		if (cur.isNull())
 		{
 			cur = q->textCursor();
 		}
 
 		cur.setCharFormat(txtFmt);
+		QTextCharFormat originalFmt = cur.charFormat();
 		cur.insertText(text);
+		cur.setCharFormat(originalFmt);
 	}
 
-	MessageFormat doExtractMessage() const
+	void doInsertImage(const QTextImageFormat imageFmt, QTextCursor& cur = QTextCursor())
 	{
-		Q_Q(const ChatTextEditor);
-		QStringList content;
+		Q_Q(ChatTextEditor);
+		if (cur.isNull())
+		{
+			cur = q->textCursor();
+		}
+
+		cur.insertImage(imageFmt);
+	}
+
+	QJsonArray doExtractMessage()
+	{
+		Q_Q(ChatTextEditor);
 		int blockCnt = 0;
 		QTextBlock block = q->document()->begin();
+		QJsonArray msgContent;
 		while (true)
 		{
 			if (!block.isValid())
@@ -46,7 +58,7 @@ public:
 			}
 			if (block != q->document()->begin())
 			{
-				content << "\n";
+				content_ << "\n";
 			}
 			qDebug() << "------block " << blockCnt << "begin------";
 			int textFragmentCnt = 0;
@@ -58,24 +70,59 @@ public:
 					break;
 				}
 				textFragmentCnt++;
-				qDebug() << "------text fragment " << textFragmentCnt << "begin------";
 				QTextFragment currentFragment = it.fragment();
-				if (currentFragment.isValid())
+				if(!currentFragment.isValid())
 				{
-					content << currentFragment.text();
-					qDebug() << "text: " << currentFragment.text();
+					++it;
+					continue;
 				}
-				qDebug() << "------text fragment " << textFragmentCnt << "end------";
+				
+				QTextImageFormat imageFmt = currentFragment.charFormat().toImageFormat();
+				if (imageFmt.isValid() && !imageFmt.isEmpty()) 
+				{
+					const QJsonObject& currentMsgType = generanteCurrentMsgType();
+					if (currentType_ != ContentType::Image && !currentMsgType.isEmpty())
+					{
+						msgContent << currentMsgType;
+					}
+
+					currentType_ = ContentType::Image;
+					content_ << imageFmt.name();
+
+					qDebug() << "------image fragment " << textFragmentCnt << "end------";
+					qDebug() << "image: " << imageFmt.name();
+					qDebug() << "------image fragment " << textFragmentCnt << "end------";
+				}
+				else
+				{
+					const QJsonObject& currentMsgType = generanteCurrentMsgType();
+					if (currentType_ != ContentType::Text && !currentMsgType.isEmpty())
+					{
+						msgContent << currentMsgType;
+					}
+
+					currentType_ = ContentType::Text;
+					content_ << currentFragment.text();
+
+					qDebug() << "------text fragment " << textFragmentCnt << "begin------";
+					qDebug() << "text: " << currentFragment.text();
+					qDebug() << "------text fragment " << textFragmentCnt << "end------";
+				}
 				++it;
 			}
 			qDebug() << "------block " << blockCnt << "end------\n";
 			blockCnt++;
 			block = block.next();
 		}
-		MessageFormat item;
-		item.content = content.join("");
-
-		return item;
+		const QJsonObject& currentMsgType = generanteCurrentMsgType();
+		if (!currentMsgType.isEmpty())
+		{
+			msgContent << currentMsgType;
+		}
+		QJsonDocument jsonDoc(msgContent);
+		qDebug() << "msgContent: " << jsonDoc.toJson(QJsonDocument::Indented);
+	
+		return msgContent;
 	}
 
 	void doClear()
@@ -153,10 +200,75 @@ public:
 		return false;
 	}
 
+	void doMousePressEvent(QMouseEvent* e)
+	{
+		if (e->button() != Qt::LeftButton)
+		{
+			return;
+		}
+
+		Q_Q(ChatTextEditor);
+		QTextCursor cursor = q->cursorForPosition(e->pos());
+		QTextCharFormat charFormat = cursor.charFormat();
+		if (charFormat.isImageFormat())
+		{
+			const QUrl& imageUrl = charFormat.toImageFormat().name();
+			if (imageUrl.isValid())
+			{
+				//emit q->imageClicked(imageUrl, ChatTextEditor::QPrivateSignal());
+			}
+		}
+		else if (charFormat.isAnchor())
+		{
+			const QUrl& linkUrl = charFormat.anchorHref();
+			if (linkUrl.isValid())
+			{
+				emit q->linkClicked(linkUrl, ChatTextEditor::QPrivateSignal());
+			}
+		}
+	}
+
 private:
+	enum class ContentType
+	{
+		Unknown,
+		Text,
+		Image
+	};
+
 	Q_DECLARE_PUBLIC(ChatTextEditor);
 	ChatTextEditor* q_ptr;
+	ContentType currentType_ = ContentType::Unknown;
 	QString sendHotkey_;
+	QStringList	content_;
+
+	QJsonObject generanteCurrentMsgType()
+	{
+		const QString& targetContent = content_.join("");
+		if (targetContent.isEmpty())
+		{
+			return QJsonObject();
+		}
+
+		QJsonObject msgType;
+		switch (currentType_)
+		{
+		case ContentType::Text:
+			msgType["type"] = "text";
+			msgType["content"] = targetContent;
+			break;
+		case ContentType::Image:
+			msgType["type"] = "image";
+			msgType["filePath"] = targetContent;
+			break;
+		default:
+			break;
+		}
+		
+		content_.clear();
+		currentType_ = ContentType::Unknown;
+		return msgType;
+	}
 };
 
 ChatTextEditor::ChatTextEditor(QWidget *parent)
@@ -173,15 +285,21 @@ ChatTextEditor::~ChatTextEditor()
 }
 
 void ChatTextEditor::insertText(const QString& text, const QTextCharFormat txtFmt, 
-	QTextCursor& cur /*= QTextCursor()*/, bool replace /*= false*/)
+	QTextCursor& cur /*= QTextCursor()*/)
 {
 	Q_D(ChatTextEditor);
-	d->doInsertText(text, txtFmt, cur, replace);
+	d->doInsertText(text, txtFmt, cur);
 }
 
-MessageFormat ChatTextEditor::extractMessage() const
+void ChatTextEditor::insertImage(const QTextImageFormat imageFmt, QTextCursor& cur /*= QTextCursor()*/)
 {
-	Q_D(const ChatTextEditor);
+	Q_D(ChatTextEditor);
+	d->doInsertImage(imageFmt, cur);
+}
+
+QJsonArray ChatTextEditor::extractMessage()
+{
+	Q_D(ChatTextEditor);
 	return d->doExtractMessage();
 }
 
@@ -215,4 +333,11 @@ bool ChatTextEditor::eventFilter(QObject *watched, QEvent *event)
 		return true;
 	}
 	return QTextEdit::eventFilter(watched, event);
+}
+
+void ChatTextEditor::mousePressEvent(QMouseEvent* e)
+{
+	Q_D(ChatTextEditor);
+	d->doMousePressEvent(e);
+	QTextEdit::mousePressEvent(e);
 }

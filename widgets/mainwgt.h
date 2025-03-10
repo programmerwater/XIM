@@ -13,8 +13,6 @@ public:
 	MainWgt(QWidget* parent = nullptr);
 	~MainWgt();
 
-	Q_SLOT void onSend();
-
 private:
 	Q_DECLARE_PRIVATE(MainWgt);
 	Q_DISABLE_COPY(MainWgt);
