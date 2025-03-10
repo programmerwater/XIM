@@ -7,13 +7,13 @@ It Supports **Windows**, **Linux** and **MacOS**.
 
 - Qt5
 
-Only Qt5.9.7 is tested, but other versions should be ok.
+Only `Qt5.9.7` is tested, but other versions also work.
 
 ## Build
 
 - git ssh key
 
-XFramelessWidget is a submodule of XIM, so you should add your ssh key to github.com.
+XFramelessWidget is a submodule of XIM, so you should add your ssh key for github.com in `~/.ssh/config`.
 
 ```shell
 Host github.com
@@ -33,8 +33,8 @@ git submoudle update --init --recursive
 
 - build
 
-Use Visual Studio 2017 or later to open XIM/CMakeLists.txt, and build it.
-Or you can use cmake to genenater native sln project build it.
+Use `Visual Studio` 2017 or later to open XIM/CMakeLists.txt, and build it.
+Or you can use cmake to genenate native projects to build it.
 
 
 ## References
